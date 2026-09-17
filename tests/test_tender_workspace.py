@@ -165,6 +165,17 @@ class TenderWorkspaceTests(unittest.TestCase):
                 },
             )
         self.assertIn("timezone", str(naive_closing.exception))
+        with self.assertRaises(ValueError):
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Non-string timestamp",
+                    "country": "Canada",
+                    "summary": "Bad type",
+                    "url": "https://example.test/type",
+                    "published_at": 12345,  # type: ignore[arg-type]
+                },
+            )
         same_again = workspace.ingest_portal_alert(
             "CanadaBuys",
             {
@@ -318,6 +329,8 @@ class TenderWorkspaceTests(unittest.TestCase):
             mocked_sleep.assert_has_calls([call(0.5), call(0.5)])
         with self.assertRaises(ValueError):
             workspace.run_pipeline_loop(iterations=-1)
+        with self.assertRaises(ValueError):
+            workspace.run_pipeline_loop(iterations=1.5)  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             workspace.run_pipeline_loop(iterations=1, interval_seconds=-0.1)
 

@@ -52,7 +52,7 @@ workspace.register_scraper("merx", StaticProcurementSiteScraper([{
 }]))
 workspace.scrape_and_ingest_sources(["merx"])
 
-# Run continuous cycles (e.g., scheduler/worker loop)
+# Run bounded polling cycles (for continuous operation, call this repeatedly from your scheduler/worker)
 cycle_stats = workspace.run_pipeline_loop(iterations=3, sources=["merx"], interval_seconds=0)
 
 # Run gates and safe outreach

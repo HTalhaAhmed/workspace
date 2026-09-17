@@ -198,6 +198,8 @@ class IngestionAndScoringEngine:
             if required:
                 raise ValueError(f"Missing required datetime field: {field_name}")
             return None
+        if not isinstance(value, str):
+            raise ValueError(f"Datetime field {field_name} must be an ISO-8601 string")
         normalized = value.replace("Z", "+00:00")
         try:
             parsed = datetime.fromisoformat(normalized)
@@ -493,6 +495,8 @@ class MasterPipelineAgent:
         value_usd: float = 0.0,
         interval_seconds: float = 0.0,
     ) -> List[LoopCycleStat]:
+        if not isinstance(iterations, int):
+            raise ValueError("iterations must be an integer")
         if iterations < 0:
             raise ValueError("iterations must be non-negative")
         if interval_seconds < 0:
