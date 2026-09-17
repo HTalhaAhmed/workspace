@@ -253,6 +253,29 @@ class TenderWorkspaceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             workspace.scrape_and_ingest_sources(["merx", 123])  # type: ignore[list-item]
 
+    def test_pipeline_loop_runs_multiple_cycles(self):
+        workspace = build_default_workspace()
+        workspace.register_scraper(
+            "canadabuys",
+            StaticProcurementSiteScraper(
+                [
+                    {
+                        "title": "Looped Ontario Cloud Opportunity",
+                        "country": "Ontario, Canada",
+                        "summary": "Cloud services",
+                        "url": "https://example.test/loop",
+                        "published_at": _utcnow().isoformat(),
+                    }
+                ]
+            ),
+        )
+
+        cycles = workspace.run_pipeline_loop(iterations=3, sources=["canada buy"], interval_seconds=0)
+        self.assertEqual([item["ingested"] for item in cycles], [1, 0, 0])
+        self.assertEqual(cycles[-1]["total"], 1)
+        self.assertEqual(workspace.run_pipeline_loop(iterations=0), [])
+
+
 
 if __name__ == "__main__":
     unittest.main()

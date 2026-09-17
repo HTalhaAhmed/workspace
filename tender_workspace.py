@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+import time
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 from uuid import uuid4
 
@@ -464,6 +465,31 @@ class MasterPipelineAgent:
                 ingested.append(self.ingest_portal_alert(source_name, payload, value_usd=value_usd))
                 self._ingested_record_keys.add(record_key)
         return ingested
+
+    def run_pipeline_loop(
+        self,
+        iterations: int,
+        sources: Optional[Sequence[str]] = None,
+        value_usd: float = 0.0,
+        interval_seconds: float = 0.0,
+    ) -> List[Dict[str, int]]:
+        if iterations < 0:
+            raise ValueError("iterations must be non-negative")
+        if interval_seconds < 0:
+            raise ValueError("interval_seconds must be non-negative")
+
+        cycle_results: List[Dict[str, int]] = []
+        for cycle in range(iterations):
+            ingested = self.scrape_and_ingest_sources(sources=sources, value_usd=value_usd)
+            cycle_results.append({
+                "cycle": cycle + 1,
+                "ingested": len(ingested),
+                "total": len(self._opportunities),
+            })
+            if interval_seconds > 0 and cycle < iterations - 1:
+                time.sleep(interval_seconds)
+
+        return cycle_results
 
     def apply_gate_0(self, opportunity_id: str, qualified_vehicles: Sequence[str], required_vehicle: Optional[str] = None) -> GateDecision:
         decision = self.gate_keeper.gate_0(qualified_vehicles=qualified_vehicles, required_vehicle=required_vehicle)
