@@ -428,7 +428,14 @@ class MasterPipelineAgent:
         self._scrapers[canonical_source] = scraper
 
     def scrape_and_ingest_sources(self, sources: Optional[Sequence[str]] = None, value_usd: float = 0.0) -> List[TenderOpportunity]:
-        selected_sources = [self._resolve_source_alias(name) for name in sources] if sources else list(self._scrapers.keys())
+        resolved_sources = [self._resolve_source_alias(name) for name in sources] if sources else list(self._scrapers.keys())
+        selected_sources: List[str] = []
+        seen_sources: set[str] = set()
+        for source_name in resolved_sources:
+            if source_name in seen_sources:
+                continue
+            seen_sources.add(source_name)
+            selected_sources.append(source_name)
         ingested: List[TenderOpportunity] = []
         for source_name in selected_sources:
             scraper = self._scrapers.get(source_name)
