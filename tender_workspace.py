@@ -372,6 +372,7 @@ class MasterPipelineAgent:
         self._signals: List[PreRFPSignal] = []
         self._contacts: List[ContactNode] = []
         self._program_owner_meetings: set[str] = set()
+        self._ingested_record_keys: set[str] = set()
         self._scrapers: Dict[str, ProcurementSiteScraper] = {}
         self._connectors: Dict[str, PortalConnector] = {
             "sap": PortalConnector("SAP"),
@@ -457,7 +458,11 @@ class MasterPipelineAgent:
             if scraper is None:
                 raise ValueError(f"No scraper registered for source: {source_name}")
             for payload in scraper.scrape():
+                record_key = self._scrape_record_key(source_name, payload)
+                if record_key in self._ingested_record_keys:
+                    continue
                 ingested.append(self.ingest_portal_alert(source_name, payload, value_usd=value_usd))
+                self._ingested_record_keys.add(record_key)
         return ingested
 
     def apply_gate_0(self, opportunity_id: str, qualified_vehicles: Sequence[str], required_vehicle: Optional[str] = None) -> GateDecision:
@@ -582,6 +587,16 @@ class MasterPipelineAgent:
     def _resolve_source_alias(source: str) -> str:
         stripped = source.strip()
         return SOURCE_ALIASES.get(stripped.lower(), stripped)
+
+    @staticmethod
+    def _scrape_record_key(source: str, payload: Dict[str, str]) -> str:
+        source_key = source.strip().lower()
+        url = payload.get("url", "").strip().lower()
+        if url:
+            return f"{source_key}|{url}"
+        title = payload.get("title", "").strip().lower()
+        published_at = payload.get("published_at", "").strip().lower()
+        return f"{source_key}|{title}|{published_at}"
 
     def draft_proposal(
         self,

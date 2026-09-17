@@ -238,12 +238,14 @@ class TenderWorkspaceTests(unittest.TestCase):
             ),
         )
 
-        ingested = workspace.scrape_and_ingest_sources(["canada buy", "merx", "MERX", "bc bid"])
-        self.assertEqual(len(ingested), 3)
-        self.assertEqual({"CanadaBuys", "MERX", "BC Bid"}, {item.source for item in ingested})
         alias_ingested = workspace.scrape_and_ingest_sources(["canadabuys"])
         self.assertEqual(len(alias_ingested), 1)
         self.assertEqual(alias_ingested[0].source, "CanadaBuys")
+        ingested = workspace.scrape_and_ingest_sources(["canada buy", "merx", "MERX", "bc bid"])
+        self.assertEqual(len(ingested), 2)
+        self.assertEqual({"MERX", "BC Bid"}, {item.source for item in ingested})
+        repeated = workspace.scrape_and_ingest_sources(["canada buy", "merx", "bc bid"])
+        self.assertEqual(repeated, [])
         self.assertEqual(workspace.scrape_and_ingest_sources([]), [])
         self.assertEqual(workspace.scrape_and_ingest_sources(["", "   "]), [])
         with self.assertRaises(ValueError):
