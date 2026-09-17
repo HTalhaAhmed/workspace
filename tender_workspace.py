@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import time
+import re
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 from uuid import uuid4
 
@@ -150,6 +151,7 @@ class IngestionAndScoringEngine:
 
     def llm_fit_score(self, record: IngestionRecord, focus_region: str = "ontario") -> float:
         text = f"{record.title} {record.summary} {record.country}".lower()
+        tokens = set(re.findall(r"[a-z0-9]+", text))
         source_key = self._normalize_source_name(record.source)
         score = 0.0
 
@@ -157,7 +159,10 @@ class IngestionAndScoringEngine:
             score += 35
 
         for keyword in ("cloud", "it", "digital", "infrastructure", "saas"):
-            if keyword in text:
+            if keyword == "it":
+                if keyword in tokens:
+                    score += 12
+            elif keyword in text:
                 score += 12
 
         if source_key in {
@@ -214,11 +219,12 @@ class GateKeeper:
 
 class ExpiryRadar:
     def upcoming(self, opportunities: Iterable[TenderOpportunity], hours: int = 72) -> List[TenderOpportunity]:
-        threshold = _utcnow() + timedelta(hours=hours)
+        now = _utcnow()
+        threshold = now + timedelta(hours=hours)
         expiring = [
             item
             for item in opportunities
-            if item.closing_at is not None and _utcnow() <= item.closing_at <= threshold
+            if item.closing_at is not None and now <= item.closing_at <= threshold
         ]
         return sorted(expiring, key=lambda item: item.closing_at or datetime.max.replace(tzinfo=timezone.utc))
 
@@ -374,6 +380,7 @@ class MasterPipelineAgent:
         self._contacts: List[ContactNode] = []
         self._program_owner_meetings: set[str] = set()
         self._ingested_record_keys: set[str] = set()
+        self._record_to_opportunity_id: Dict[str, str] = {}
         self._scrapers: Dict[str, ProcurementSiteScraper] = {}
         self._connectors: Dict[str, PortalConnector] = {
             "sap": PortalConnector("SAP"),
@@ -415,6 +422,10 @@ class MasterPipelineAgent:
                 f"Unknown tender source: {source}. Register the source before ingestion. "
                 f"Supported sources: {available_sources}"
             )
+        record_key = self._scrape_record_key(canonical_source, payload)
+        existing_opportunity_id = self._record_to_opportunity_id.get(record_key)
+        if existing_opportunity_id is not None:
+            return self._opportunities[existing_opportunity_id]
         record = self.ingestion_engine.normalize_alert(canonical_source, payload)
         opportunity = self.ingest_opportunity(
             title=record.title,
@@ -426,6 +437,8 @@ class MasterPipelineAgent:
         )
         opportunity.fit_score = self.ingestion_engine.llm_fit_score(record)
         opportunity.stage = "triage"
+        self._record_to_opportunity_id[record_key] = opportunity.opportunity_id
+        self._ingested_record_keys.add(record_key)
         return opportunity
 
     def register_scraper(self, source: str, scraper: ProcurementSiteScraper) -> None:

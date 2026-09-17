@@ -140,6 +140,18 @@ class TenderWorkspaceTests(unittest.TestCase):
                 },
             )
         self.assertIn("closing_at", str(invalid_closing.exception))
+        same_again = workspace.ingest_portal_alert(
+            "CanadaBuys",
+            {
+                "title": "Ontario Cloud Infrastructure and IT Services",
+                "country": "Ontario, Canada",
+                "summary": "Cloud and IT managed services for digital infrastructure.",
+                "url": "https://example.test/a",
+                "published_at": _utcnow().isoformat(),
+                "closing_at": soon,
+            },
+        )
+        self.assertEqual(high_fit.opportunity_id, same_again.opportunity_id)
 
     def test_gate_flow_feedback_and_success_metrics(self):
         workspace = build_default_workspace()
@@ -279,6 +291,10 @@ class TenderWorkspaceTests(unittest.TestCase):
             workspace.run_pipeline_loop(iterations=3, sources=["canada buy"], interval_seconds=0.5)
             self.assertEqual(mocked_sleep.call_count, 2)
             mocked_sleep.assert_has_calls([call(0.5), call(0.5)])
+        with self.assertRaises(ValueError):
+            workspace.run_pipeline_loop(iterations=-1)
+        with self.assertRaises(ValueError):
+            workspace.run_pipeline_loop(iterations=1, interval_seconds=-0.1)
 
 
 
