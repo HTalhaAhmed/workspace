@@ -211,6 +211,8 @@ class TenderWorkspaceTests(unittest.TestCase):
         self.assertEqual(workspace.scrape_and_ingest_sources(["", "   "]), [])
         with self.assertRaises(ValueError):
             workspace.scrape_and_ingest_sources(["oecm"])
+        with self.assertRaises(ValueError):
+            workspace.scrape_and_ingest_sources(["merx", 123])  # type: ignore[list-item]
 
 
 if __name__ == "__main__":

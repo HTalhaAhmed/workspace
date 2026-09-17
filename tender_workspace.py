@@ -135,8 +135,8 @@ class TenderSourceCatalog:
 
 class IngestionAndScoringEngine:
     def normalize_alert(self, source: str, payload: Dict[str, str]) -> IngestionRecord:
-        published_at = self._parse_datetime(payload.get("published_at"))
-        closing_at = self._parse_datetime(payload.get("closing_at"), required=False)
+        published_at = self._parse_datetime(payload.get("published_at"), field_name="published_at")
+        closing_at = self._parse_datetime(payload.get("closing_at"), required=False, field_name="closing_at")
         return IngestionRecord(
             title=payload.get("title", "Untitled Tender").strip(),
             source=source.strip(),
@@ -178,10 +178,10 @@ class IngestionAndScoringEngine:
         return "".join(char for char in source.lower() if char.isalnum())
 
     @staticmethod
-    def _parse_datetime(value: Optional[str], required: bool = True) -> Optional[datetime]:
+    def _parse_datetime(value: Optional[str], required: bool = True, field_name: str = "datetime") -> Optional[datetime]:
         if not value:
             if required:
-                raise ValueError("Missing required datetime field: published_at")
+                raise ValueError(f"Missing required datetime field: {field_name}")
             return None
         normalized = value.replace("Z", "+00:00")
         parsed = datetime.fromisoformat(normalized)
@@ -433,6 +433,8 @@ class MasterPipelineAgent:
         else:
             resolved_sources = []
             for name in sources:
+                if not isinstance(name, str):
+                    raise ValueError("Source names must be strings")
                 stripped_name = name.strip()
                 if not stripped_name:
                     continue

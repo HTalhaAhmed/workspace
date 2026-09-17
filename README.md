@@ -19,7 +19,7 @@ Automation-oriented foundation for a **controlled tender pipeline workspace** de
 ## Quick usage
 ```python
 from datetime import timedelta
-from tender_workspace import _utcnow, build_default_workspace
+from tender_workspace import StaticProcurementSiteScraper, _utcnow, build_default_workspace
 
 workspace = build_default_workspace()
 
@@ -42,7 +42,6 @@ opportunity = workspace.ingest_portal_alert("CanadaBuys", {
 })
 
 # Optional scraper wiring (example static scraper for orchestration)
-from tender_workspace import StaticProcurementSiteScraper
 workspace.register_scraper("merx", StaticProcurementSiteScraper([{
     "title": "Municipal Digital Services",
     "country": "Canada",
