@@ -399,7 +399,7 @@ class MasterPipelineAgent:
             opportunity.stage = "open_solicitation"
         else:
             opportunity.blackout_flag = False
-            if was_blackout:
+            if was_blackout and opportunity.stage == "open_solicitation":
                 opportunity.stage = opportunity.pre_blackout_stage or "triage"
             opportunity.pre_blackout_stage = None
 

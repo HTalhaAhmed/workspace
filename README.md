@@ -1,6 +1,6 @@
 # workspace
 
-Automation-oriented foundation for a **mass tender outreach workspace** designed for AWS deployment.
+Automation-oriented foundation for a **controlled tender pipeline workspace** designed for AWS deployment.
 
 ## What this now supports
 - Global + Canadian source catalog (including **CanadaBuys, Alberta Purchasing Connection, Bids and Tenders, Euna Network, OECM**)
