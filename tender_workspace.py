@@ -207,7 +207,7 @@ class IngestionAndScoringEngine:
             raise ValueError(f"Invalid datetime format for {field_name}") from exc
         if parsed.tzinfo is None:
             raise ValueError(f"Datetime field {field_name} must include timezone information")
-        return parsed
+        return parsed.astimezone(timezone.utc)
 
     @staticmethod
     def _parse_text_field(value: object, field_name: str) -> str:
