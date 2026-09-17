@@ -168,7 +168,9 @@ class IngestionAndScoringEngine:
         }:
             score += 10
 
-        if (_utcnow() - record.published_at) <= timedelta(hours=24):
+        now = _utcnow()
+        age = now - record.published_at
+        if timedelta(0) <= age <= timedelta(hours=24):
             score += 12
 
         return min(score, 100.0)
@@ -573,7 +575,7 @@ class MasterPipelineAgent:
     @staticmethod
     def _normalize_datetime(value: datetime) -> datetime:
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
+            raise ValueError("Datetime values must include timezone information")
         return value.astimezone(timezone.utc)
 
     @staticmethod

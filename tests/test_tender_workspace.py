@@ -90,6 +90,17 @@ class TenderWorkspaceTests(unittest.TestCase):
             },
         )
         self.assertGreater(euna_boost.fit_score, generic.fit_score)
+        future_published = workspace.ingest_portal_alert(
+            "CanadaBuys",
+            {
+                "title": "Ontario Cloud Infrastructure and IT Services",
+                "country": "Ontario, Canada",
+                "summary": "Cloud and IT managed services for digital infrastructure.",
+                "url": "https://example.test/future",
+                "published_at": (_utcnow() + timedelta(days=1)).isoformat(),
+            },
+        )
+        self.assertLess(future_published.fit_score, high_fit.fit_score)
         with self.assertRaises(ValueError) as err:
             workspace.ingest_portal_alert("Unregistered Portal", {"title": "X"})
         self.assertIn("Supported sources:", str(err.exception))
@@ -158,7 +169,8 @@ class TenderWorkspaceTests(unittest.TestCase):
             workspace.log_program_owner_meeting(f"Owner {idx}")
         workspace.log_pre_rfp_signal("Council cloud budget uplift", _utcnow() + timedelta(days=30), "council agenda")
         workspace.log_pre_rfp_signal("Departmental IT plan", _utcnow() + timedelta(days=45), "federal plan")
-        workspace.log_pre_rfp_signal("Naive date signal", (_utcnow() + timedelta(days=60)).replace(tzinfo=None), "municipal plan")
+        with self.assertRaises(ValueError):
+            workspace.log_pre_rfp_signal("Naive date signal", (_utcnow() + timedelta(days=60)).replace(tzinfo=None), "municipal plan")
 
         signals = workspace.list_signals()
         self.assertTrue(all(signal.estimated_release_date.tzinfo is not None for signal in signals))
