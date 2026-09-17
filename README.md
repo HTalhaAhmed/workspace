@@ -52,7 +52,7 @@ workspace.register_scraper("merx", StaticProcurementSiteScraper([{
 workspace.scrape_and_ingest_sources(["merx"])
 
 # Run continuous cycles (e.g., scheduler/worker loop)
-cycle_stats = workspace.run_pipeline_loop(iterations=3, sources=["canada buy", "merx"], interval_seconds=0)
+cycle_stats = workspace.run_pipeline_loop(iterations=3, sources=["merx"], interval_seconds=0)
 
 # Run gates and safe outreach
 workspace.apply_gate_0(opportunity.opportunity_id, ["SBIPS"], required_vehicle="SBIPS")

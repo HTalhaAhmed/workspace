@@ -468,7 +468,7 @@ class MasterPipelineAgent:
 
     def run_pipeline_loop(
         self,
-        iterations: int,
+        iterations: int = 1,
         sources: Optional[Sequence[str]] = None,
         value_usd: float = 0.0,
         interval_seconds: float = 0.0,
