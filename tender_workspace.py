@@ -371,7 +371,11 @@ class MasterPipelineAgent:
 
     def ingest_portal_alert(self, source: str, payload: Dict[str, str], value_usd: float = 0.0) -> TenderOpportunity:
         if not self.catalog.has_source(source):
-            raise ValueError(f"Unknown tender source: {source}. Register the source before ingestion.")
+            available_sources = ", ".join(sorted(item.name for item in self.catalog.list_sources()))
+            raise ValueError(
+                f"Unknown tender source: {source}. Register the source before ingestion. "
+                f"Supported sources: {available_sources}"
+            )
         record = self.ingestion_engine.normalize_alert(source, payload)
         opportunity = self.ingest_opportunity(
             title=record.title,
@@ -405,8 +409,7 @@ class MasterPipelineAgent:
         was_blackout = opportunity.blackout_flag
         if is_open_solicitation:
             if not was_blackout:
-                if opportunity.stage != "open_solicitation":
-                    opportunity.pre_blackout_stage = opportunity.stage
+                opportunity.pre_blackout_stage = opportunity.pre_blackout_stage or opportunity.stage
                 opportunity.stage = "open_solicitation"
             opportunity.blackout_flag = True
         else:

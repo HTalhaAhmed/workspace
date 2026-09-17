@@ -86,8 +86,9 @@ class TenderWorkspaceTests(unittest.TestCase):
             },
         )
         self.assertGreater(euna_boost.fit_score, generic.fit_score)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as err:
             workspace.ingest_portal_alert("Unregistered Portal", {"title": "X"})
+        self.assertIn("Supported sources:", str(err.exception))
 
     def test_gate_flow_feedback_and_success_metrics(self):
         workspace = build_default_workspace()
