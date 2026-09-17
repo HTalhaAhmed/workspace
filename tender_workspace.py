@@ -391,14 +391,15 @@ class MasterPipelineAgent:
 
     def set_blackout(self, opportunity_id: str, is_open_solicitation: bool) -> None:
         opportunity = self._opportunities[opportunity_id]
+        was_blackout = opportunity.blackout_flag
         if is_open_solicitation:
-            if opportunity.stage != "open_solicitation":
+            if not was_blackout:
                 opportunity.pre_blackout_stage = opportunity.stage
             opportunity.blackout_flag = True
             opportunity.stage = "open_solicitation"
         else:
             opportunity.blackout_flag = False
-            if opportunity.stage == "open_solicitation":
+            if was_blackout:
                 opportunity.stage = opportunity.pre_blackout_stage or "triage"
             opportunity.pre_blackout_stage = None
 

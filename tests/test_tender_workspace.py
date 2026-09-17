@@ -20,12 +20,12 @@ class TenderWorkspaceTests(unittest.TestCase):
             country="Canada",
             value_usd=300000,
         )
+        workspace.update_stage(opportunity.opportunity_id, "pursuit")
         workspace.set_blackout(opportunity.opportunity_id, True)
         with self.assertRaises(PermissionError):
             workspace.start_pre_solicitation_conversation(opportunity.opportunity_id, "Program Owner A")
-        workspace.update_stage(opportunity.opportunity_id, "pursuit")
-        workspace.set_blackout(opportunity.opportunity_id, True)
         workspace.set_blackout(opportunity.opportunity_id, False)
+        self.assertEqual(workspace.monitor()["pursuit"], 1)
         result = workspace.start_pre_solicitation_conversation(opportunity.opportunity_id, "Program Owner A")
         self.assertIn("Capability briefing initiated", result)
 
