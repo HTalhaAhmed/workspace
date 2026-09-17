@@ -12,6 +12,7 @@ DEFAULT_TENDER_PORTALS = [
     "DG Market",
     "Global Public Procurement Database",
     "World Bank Projects",
+    "World Bank Procurement",
     "ADB.org",
     "IADB.org",
     "African Development Bank Group",
@@ -21,11 +22,26 @@ DEFAULT_TENDER_PORTALS = [
     "IBADEA",
     "Global Municipal Tenders Aggregator",
     "CanadaBuys",
+    "Ontario Tenders Portal",
+    "MERX",
+    "BC Bid",
     "Alberta Purchasing Connection",
     "Bids and Tenders",
     "Euna Network",
     "OECM",
 ]
+
+SOURCE_ALIASES = {
+    "world bank procurement": "World Bank Procurement",
+    "world bank projects": "World Bank Projects",
+    "canada buy": "CanadaBuys",
+    "canadabuys": "CanadaBuys",
+    "ontario tender": "Ontario Tenders Portal",
+    "ontario tenders": "Ontario Tenders Portal",
+    "merx": "MERX",
+    "bc bid": "BC Bid",
+    "alberta": "Alberta Purchasing Connection",
+}
 
 
 def _utcnow() -> datetime:
@@ -271,6 +287,19 @@ class PortalConnector:
         return {"portal": self.name, "query": query, "status": "queued"}
 
 
+class ProcurementSiteScraper:
+    def scrape(self) -> List[Dict[str, str]]:
+        raise NotImplementedError
+
+
+class StaticProcurementSiteScraper(ProcurementSiteScraper):
+    def __init__(self, records: Sequence[Dict[str, str]]) -> None:
+        self._records = [dict(item) for item in records]
+
+    def scrape(self) -> List[Dict[str, str]]:
+        return [dict(item) for item in self._records]
+
+
 class ProposalWriter:
     def generate(
         self,
@@ -338,6 +367,7 @@ class MasterPipelineAgent:
         self._signals: List[PreRFPSignal] = []
         self._contacts: List[ContactNode] = []
         self._program_owner_meetings: set[str] = set()
+        self._scrapers: Dict[str, ProcurementSiteScraper] = {}
         self._connectors: Dict[str, PortalConnector] = {
             "sap": PortalConnector("SAP"),
             "alberta_connections": PortalConnector("Alberta Purchasing Connection"),
@@ -354,13 +384,14 @@ class MasterPipelineAgent:
         published_at: Optional[datetime] = None,
         closing_at: Optional[datetime] = None,
     ) -> TenderOpportunity:
-        if not self.catalog.has_source(source):
+        canonical_source = self._resolve_source_alias(source)
+        if not self.catalog.has_source(canonical_source):
             raise ValueError(f"Unknown tender source: {source}")
         opportunity_id = f"tdr-{uuid4().hex[:10]}"
         opportunity = TenderOpportunity(
             opportunity_id=opportunity_id,
             title=title.strip(),
-            source=source.strip(),
+            source=canonical_source,
             country=country.strip(),
             value_usd=value_usd,
             published_at=published_at,
@@ -370,16 +401,17 @@ class MasterPipelineAgent:
         return opportunity
 
     def ingest_portal_alert(self, source: str, payload: Dict[str, str], value_usd: float = 0.0) -> TenderOpportunity:
-        if not self.catalog.has_source(source):
+        canonical_source = self._resolve_source_alias(source)
+        if not self.catalog.has_source(canonical_source):
             available_sources = ", ".join(sorted(item.name for item in self.catalog.list_sources()))
             raise ValueError(
                 f"Unknown tender source: {source}. Register the source before ingestion. "
                 f"Supported sources: {available_sources}"
             )
-        record = self.ingestion_engine.normalize_alert(source, payload)
+        record = self.ingestion_engine.normalize_alert(canonical_source, payload)
         opportunity = self.ingest_opportunity(
             title=record.title,
-            source=source,
+            source=canonical_source,
             country=record.country,
             value_usd=value_usd,
             published_at=record.published_at,
@@ -388,6 +420,23 @@ class MasterPipelineAgent:
         opportunity.fit_score = self.ingestion_engine.llm_fit_score(record)
         opportunity.stage = "triage"
         return opportunity
+
+    def register_scraper(self, source: str, scraper: ProcurementSiteScraper) -> None:
+        canonical_source = self._resolve_source_alias(source)
+        if not self.catalog.has_source(canonical_source):
+            raise ValueError(f"Unknown tender source for scraper: {source}")
+        self._scrapers[canonical_source] = scraper
+
+    def scrape_and_ingest_sources(self, sources: Optional[Sequence[str]] = None, value_usd: float = 0.0) -> List[TenderOpportunity]:
+        selected_sources = [self._resolve_source_alias(name) for name in sources] if sources else list(self._scrapers.keys())
+        ingested: List[TenderOpportunity] = []
+        for source_name in selected_sources:
+            scraper = self._scrapers.get(source_name)
+            if scraper is None:
+                raise ValueError(f"No scraper registered for source: {source_name}")
+            for payload in scraper.scrape():
+                ingested.append(self.ingest_portal_alert(source_name, payload, value_usd=value_usd))
+        return ingested
 
     def apply_gate_0(self, opportunity_id: str, qualified_vehicles: Sequence[str], required_vehicle: Optional[str] = None) -> GateDecision:
         decision = self.gate_keeper.gate_0(qualified_vehicles=qualified_vehicles, required_vehicle=required_vehicle)
@@ -506,6 +555,11 @@ class MasterPipelineAgent:
         if value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
+
+    @staticmethod
+    def _resolve_source_alias(source: str) -> str:
+        stripped = source.strip()
+        return SOURCE_ALIASES.get(stripped.lower(), stripped)
 
     def draft_proposal(
         self,

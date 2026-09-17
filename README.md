@@ -4,6 +4,7 @@ Automation-oriented foundation for a **controlled tender pipeline workspace** de
 
 ## What this now supports
 - Global + Canadian source catalog (including **CanadaBuys, Alberta Purchasing Connection, Bids and Tenders, Euna Network, OECM**)
+- Requested procurement targets covered in catalog aliases: **World Bank procurement, CanadaBuys, Ontario tenders, MERX, BC Bid, Alberta**
 - Municipal portal registration and contact-graph ingestion inputs (GEDS/directories/report authors)
 - Normalized portal-alert ingestion schema
 - LLM-style fit scoring and weekly ranked review list
@@ -39,6 +40,17 @@ opportunity = workspace.ingest_portal_alert("CanadaBuys", {
     "published_at": _utcnow().isoformat(),
     "closing_at": (_utcnow() + timedelta(days=7)).isoformat(),
 })
+
+# Optional scraper wiring (example static scraper for orchestration)
+from tender_workspace import StaticProcurementSiteScraper
+workspace.register_scraper("merx", StaticProcurementSiteScraper([{
+    "title": "Municipal Digital Services",
+    "country": "Canada",
+    "summary": "IT modernization",
+    "url": "https://example.test/merx",
+    "published_at": _utcnow().isoformat(),
+}]))
+workspace.scrape_and_ingest_sources(["merx"])
 
 # Run gates and safe outreach
 workspace.apply_gate_0(opportunity.opportunity_id, ["SBIPS"], required_vehicle="SBIPS")

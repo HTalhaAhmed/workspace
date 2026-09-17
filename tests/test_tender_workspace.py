@@ -1,7 +1,7 @@
 import unittest
 from datetime import timedelta
 
-from tender_workspace import DEFAULT_TENDER_PORTALS, _utcnow, build_default_workspace
+from tender_workspace import DEFAULT_TENDER_PORTALS, StaticProcurementSiteScraper, _utcnow, build_default_workspace
 
 
 class TenderWorkspaceTests(unittest.TestCase):
@@ -11,6 +11,10 @@ class TenderWorkspaceTests(unittest.TestCase):
         self.assertTrue(set(DEFAULT_TENDER_PORTALS).issubset(names))
         self.assertIn("OECM", names)
         self.assertIn("CanadaBuys", names)
+        self.assertIn("World Bank Procurement", names)
+        self.assertIn("Ontario Tenders Portal", names)
+        self.assertIn("MERX", names)
+        self.assertIn("BC Bid", names)
 
     def test_blackout_blocks_outreach(self):
         workspace = build_default_workspace()
@@ -141,6 +145,55 @@ class TenderWorkspaceTests(unittest.TestCase):
             workspace.connect_account("unknown_system", {"mock_auth_token": "allow"})
         self.assertIn("Supported:", str(err.exception))
         self.assertIn("sap", str(err.exception))
+
+    def test_multi_source_scraping_ingestion(self):
+        workspace = build_default_workspace()
+        workspace.register_scraper(
+            "canada buy",
+            StaticProcurementSiteScraper(
+                [
+                    {
+                        "title": "Ontario Cloud Platform Services",
+                        "country": "Ontario, Canada",
+                        "summary": "Cloud operations tender",
+                        "url": "https://example.test/canadabuys",
+                        "published_at": _utcnow().isoformat(),
+                    }
+                ]
+            ),
+        )
+        workspace.register_scraper(
+            "merx",
+            StaticProcurementSiteScraper(
+                [
+                    {
+                        "title": "Municipal Digital Services",
+                        "country": "Canada",
+                        "summary": "IT modernization",
+                        "url": "https://example.test/merx",
+                        "published_at": _utcnow().isoformat(),
+                    }
+                ]
+            ),
+        )
+        workspace.register_scraper(
+            "bc bid",
+            StaticProcurementSiteScraper(
+                [
+                    {
+                        "title": "BC Infrastructure Cloud",
+                        "country": "British Columbia, Canada",
+                        "summary": "Cloud transformation",
+                        "url": "https://example.test/bcbid",
+                        "published_at": _utcnow().isoformat(),
+                    }
+                ]
+            ),
+        )
+
+        ingested = workspace.scrape_and_ingest_sources(["canada buy", "merx", "bc bid"])
+        self.assertEqual(len(ingested), 3)
+        self.assertEqual({"CanadaBuys", "MERX", "BC Bid"}, {item.source for item in ingested})
 
 
 if __name__ == "__main__":
