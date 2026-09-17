@@ -109,6 +109,13 @@ class PreRFPSignal:
     logged_at: datetime
 
 
+@dataclass(frozen=True)
+class LoopCycleStat:
+    cycle: int
+    ingested: int
+    total: int
+
+
 class TenderSourceCatalog:
     def __init__(self, sources: Optional[Iterable[TenderSource]] = None) -> None:
         self._sources: Dict[str, TenderSource] = {}
@@ -485,20 +492,16 @@ class MasterPipelineAgent:
         sources: Optional[Sequence[str]] = None,
         value_usd: float = 0.0,
         interval_seconds: float = 0.0,
-    ) -> List[Dict[str, int]]:
+    ) -> List[LoopCycleStat]:
         if iterations < 0:
             raise ValueError("iterations must be non-negative")
         if interval_seconds < 0:
             raise ValueError("interval_seconds must be non-negative")
 
-        cycle_results: List[Dict[str, int]] = []
+        cycle_results: List[LoopCycleStat] = []
         for cycle in range(iterations):
             ingested = self.scrape_and_ingest_sources(sources=sources, value_usd=value_usd)
-            cycle_results.append({
-                "cycle": cycle + 1,
-                "ingested": len(ingested),
-                "total": len(self._opportunities),
-            })
+            cycle_results.append(LoopCycleStat(cycle=cycle + 1, ingested=len(ingested), total=len(self._opportunities)))
             if interval_seconds > 0 and cycle < iterations - 1:
                 time.sleep(interval_seconds)
 

@@ -309,8 +309,8 @@ class TenderWorkspaceTests(unittest.TestCase):
         )
 
         cycles = workspace.run_pipeline_loop(iterations=3, sources=["canada buy"], interval_seconds=0)
-        self.assertEqual([item["ingested"] for item in cycles], [1, 0, 0])
-        self.assertEqual(cycles[-1]["total"], 1)
+        self.assertEqual([item.ingested for item in cycles], [1, 0, 0])
+        self.assertEqual(cycles[-1].total, 1)
         self.assertEqual(workspace.run_pipeline_loop(iterations=0), [])
         with patch("tender_workspace.time.sleep") as mocked_sleep:
             workspace.run_pipeline_loop(iterations=3, sources=["canada buy"], interval_seconds=0.5)
