@@ -23,6 +23,8 @@ class TenderWorkspaceTests(unittest.TestCase):
         workspace.set_blackout(opportunity.opportunity_id, True)
         with self.assertRaises(PermissionError):
             workspace.start_pre_solicitation_conversation(opportunity.opportunity_id, "Program Owner A")
+        workspace.update_stage(opportunity.opportunity_id, "pursuit")
+        workspace.set_blackout(opportunity.opportunity_id, True)
         workspace.set_blackout(opportunity.opportunity_id, False)
         result = workspace.start_pre_solicitation_conversation(opportunity.opportunity_id, "Program Owner A")
         self.assertIn("Capability briefing initiated", result)
@@ -106,8 +108,10 @@ class TenderWorkspaceTests(unittest.TestCase):
         self.assertTrue(logged_in)
         result = workspace.maneuver_account("sap", "open active procurements")
         self.assertEqual(result["status"], "queued")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as err:
             workspace.connect_account("unknown_system", {"username": "demo", "password": "secret"})
+        self.assertIn("Supported:", str(err.exception))
+        self.assertIn("sap", str(err.exception))
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ Automation-oriented foundation for a **mass tender outreach workspace** designed
 - Procurement approval policy restricted to: **IT manager, director, finance department, council**
 - Proposal drafting with compliance-first structure
 - Success metric tracking for meetings and pre-RFP signals
-- Account connector scaffolding for **SAP**, **Alberta connections**, **Bids and Tenders**, and **Euna**
+- Account connector scaffolding for **SAP**, **alberta_connections**, **bids_and_tenders**, and **euna** connector keys
 
 ## Quick usage
 ```python

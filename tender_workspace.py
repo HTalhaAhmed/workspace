@@ -51,6 +51,7 @@ class TenderOpportunity:
     closing_at: Optional[datetime] = None
     fit_score: float = 0.0
     blackout_flag: bool = False
+    pre_blackout_stage: Optional[str] = None
     bid_cost_hours: float = 0.0
     debrief_booked: bool = False
     scoring_breakdown: Dict[str, float] = field(default_factory=dict)
@@ -390,11 +391,16 @@ class MasterPipelineAgent:
 
     def set_blackout(self, opportunity_id: str, is_open_solicitation: bool) -> None:
         opportunity = self._opportunities[opportunity_id]
-        opportunity.blackout_flag = is_open_solicitation
         if is_open_solicitation:
+            if opportunity.stage != "open_solicitation":
+                opportunity.pre_blackout_stage = opportunity.stage
+            opportunity.blackout_flag = True
             opportunity.stage = "open_solicitation"
-        elif opportunity.stage == "open_solicitation":
-            opportunity.stage = "triage"
+        else:
+            opportunity.blackout_flag = False
+            if opportunity.stage == "open_solicitation":
+                opportunity.stage = opportunity.pre_blackout_stage or "triage"
+            opportunity.pre_blackout_stage = None
 
     def start_pre_solicitation_conversation(self, opportunity_id: str, contact_name: str) -> str:
         opportunity = self._opportunities[opportunity_id]
