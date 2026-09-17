@@ -194,7 +194,7 @@ class IngestionAndScoringEngine:
 
     @staticmethod
     def _parse_datetime(value: Optional[str], required: bool = True, field_name: str = "datetime") -> Optional[datetime]:
-        if not value:
+        if value is None or value == "":
             if required:
                 raise ValueError(f"Missing required datetime field: {field_name}")
             return None
@@ -503,6 +503,8 @@ class MasterPipelineAgent:
     ) -> List[LoopCycleStat]:
         if not isinstance(iterations, int):
             raise ValueError("iterations must be an integer")
+        if not isinstance(interval_seconds, (int, float)):
+            raise ValueError("interval_seconds must be numeric")
         if iterations < 0:
             raise ValueError("iterations must be non-negative")
         if interval_seconds < 0:

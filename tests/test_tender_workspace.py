@@ -180,6 +180,17 @@ class TenderWorkspaceTests(unittest.TestCase):
             workspace.ingest_portal_alert(
                 "CanadaBuys",
                 {
+                    "title": "Zero timestamp",
+                    "country": "Canada",
+                    "summary": "Bad type",
+                    "url": "https://example.test/zero",
+                    "published_at": 0,  # type: ignore[arg-type]
+                },
+            )
+        with self.assertRaises(ValueError):
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
                     "title": "Non-string url",
                     "country": "Canada",
                     "summary": "Bad type",
@@ -344,6 +355,8 @@ class TenderWorkspaceTests(unittest.TestCase):
             workspace.run_pipeline_loop(iterations=1.5)  # type: ignore[arg-type]
         with self.assertRaises(ValueError):
             workspace.run_pipeline_loop(iterations=1, interval_seconds=-0.1)
+        with self.assertRaises(ValueError):
+            workspace.run_pipeline_loop(iterations=1, interval_seconds="1")  # type: ignore[arg-type]
 
 
 
