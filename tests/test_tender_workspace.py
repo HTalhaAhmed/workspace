@@ -93,6 +93,16 @@ class TenderWorkspaceTests(unittest.TestCase):
         with self.assertRaises(ValueError) as err:
             workspace.ingest_portal_alert("Unregistered Portal", {"title": "X"})
         self.assertIn("Supported sources:", str(err.exception))
+        with self.assertRaises(ValueError):
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Missing timestamp alert",
+                    "country": "Canada",
+                    "summary": "No publication timestamp",
+                    "url": "https://example.test/missing",
+                },
+            )
 
     def test_gate_flow_feedback_and_success_metrics(self):
         workspace = build_default_workspace()
@@ -194,7 +204,13 @@ class TenderWorkspaceTests(unittest.TestCase):
         ingested = workspace.scrape_and_ingest_sources(["canada buy", "merx", "MERX", "bc bid"])
         self.assertEqual(len(ingested), 3)
         self.assertEqual({"CanadaBuys", "MERX", "BC Bid"}, {item.source for item in ingested})
+        alias_ingested = workspace.scrape_and_ingest_sources(["canadabuys"])
+        self.assertEqual(len(alias_ingested), 1)
+        self.assertEqual(alias_ingested[0].source, "CanadaBuys")
         self.assertEqual(workspace.scrape_and_ingest_sources([]), [])
+        self.assertEqual(workspace.scrape_and_ingest_sources(["", "   "]), [])
+        with self.assertRaises(ValueError):
+            workspace.scrape_and_ingest_sources(["oecm"])
 
 
 if __name__ == "__main__":

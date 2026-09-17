@@ -181,7 +181,7 @@ class IngestionAndScoringEngine:
     def _parse_datetime(value: Optional[str], required: bool = True) -> Optional[datetime]:
         if not value:
             if required:
-                return _utcnow()
+                raise ValueError("Missing required datetime field: published_at")
             return None
         normalized = value.replace("Z", "+00:00")
         parsed = datetime.fromisoformat(normalized)
@@ -428,11 +428,15 @@ class MasterPipelineAgent:
         self._scrapers[canonical_source] = scraper
 
     def scrape_and_ingest_sources(self, sources: Optional[Sequence[str]] = None, value_usd: float = 0.0) -> List[TenderOpportunity]:
-        resolved_sources = (
-            [self._resolve_source_alias(name) for name in sources]
-            if sources is not None
-            else list(self._scrapers.keys())
-        )
+        if sources is None:
+            resolved_sources = list(self._scrapers.keys())
+        else:
+            resolved_sources = []
+            for name in sources:
+                stripped_name = name.strip()
+                if not stripped_name:
+                    continue
+                resolved_sources.append(self._resolve_source_alias(stripped_name))
         selected_sources: List[str] = []
         seen_sources: set[str] = set()
         for source_name in resolved_sources:
