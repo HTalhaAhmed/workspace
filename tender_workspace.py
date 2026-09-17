@@ -261,7 +261,7 @@ class PortalConnector:
         self.logged_in = False
 
     def login(self, credentials: Dict[str, str]) -> bool:
-        if credentials.get("username") and credentials.get("password"):
+        if credentials.get("mock_auth_token") == "allow":
             self.logged_in = True
         return self.logged_in
 
@@ -371,7 +371,7 @@ class MasterPipelineAgent:
 
     def ingest_portal_alert(self, source: str, payload: Dict[str, str], value_usd: float = 0.0) -> TenderOpportunity:
         if not self.catalog.has_source(source):
-            self.catalog.add_source(source, category="global")
+            raise ValueError(f"Unknown tender source: {source}. Register the source before ingestion.")
         record = self.ingestion_engine.normalize_alert(source, payload)
         opportunity = self.ingest_opportunity(
             title=record.title,
@@ -405,7 +405,8 @@ class MasterPipelineAgent:
         was_blackout = opportunity.blackout_flag
         if is_open_solicitation:
             if not was_blackout:
-                opportunity.pre_blackout_stage = opportunity.stage
+                if opportunity.stage != "open_solicitation":
+                    opportunity.pre_blackout_stage = opportunity.stage
                 opportunity.stage = "open_solicitation"
             opportunity.blackout_flag = True
         else:
@@ -437,14 +438,18 @@ class MasterPipelineAgent:
         self._program_owner_meetings.add(owner_name.strip())
 
     def log_pre_rfp_signal(self, description: str, estimated_release_date: datetime, source: str) -> None:
+        normalized_release_date = self._normalize_datetime(estimated_release_date)
         self._signals.append(
             PreRFPSignal(
                 description=description.strip(),
-                estimated_release_date=estimated_release_date,
+                estimated_release_date=normalized_release_date,
                 source=source.strip(),
                 logged_at=_utcnow(),
             )
         )
+
+    def list_signals(self) -> List[PreRFPSignal]:
+        return list(self._signals)
 
     def weekly_ranked_list(self, limit: int = 25) -> List[TenderOpportunity]:
         ranked = sorted(
@@ -492,6 +497,12 @@ class MasterPipelineAgent:
             supported = ", ".join(sorted(self._connectors.keys()))
             raise ValueError(f"Unsupported account connector: {account_name}. Supported: {supported}")
         return connector
+
+    @staticmethod
+    def _normalize_datetime(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
     def draft_proposal(
         self,

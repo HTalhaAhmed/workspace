@@ -86,6 +86,8 @@ class TenderWorkspaceTests(unittest.TestCase):
             },
         )
         self.assertGreater(euna_boost.fit_score, generic.fit_score)
+        with self.assertRaises(ValueError):
+            workspace.ingest_portal_alert("Unregistered Portal", {"title": "X"})
 
     def test_gate_flow_feedback_and_success_metrics(self):
         workspace = build_default_workspace()
@@ -116,6 +118,10 @@ class TenderWorkspaceTests(unittest.TestCase):
             workspace.log_program_owner_meeting(f"Owner {idx}")
         workspace.log_pre_rfp_signal("Council cloud budget uplift", _utcnow() + timedelta(days=30), "council agenda")
         workspace.log_pre_rfp_signal("Departmental IT plan", _utcnow() + timedelta(days=45), "federal plan")
+        workspace.log_pre_rfp_signal("Naive date signal", (_utcnow() + timedelta(days=60)).replace(tzinfo=None), "municipal plan")
+
+        signals = workspace.list_signals()
+        self.assertTrue(all(signal.estimated_release_date.tzinfo is not None for signal in signals))
 
         metrics = workspace.success_metrics()
         self.assertTrue(metrics["all_goals_met"])
@@ -126,12 +132,12 @@ class TenderWorkspaceTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             workspace.require_procurement_approval("procurement intern")
 
-        logged_in = workspace.connect_account("sap", {"username": "demo", "password": "secret"})
+        logged_in = workspace.connect_account("sap", {"mock_auth_token": "allow"})
         self.assertTrue(logged_in)
         result = workspace.maneuver_account("sap", "open active procurements")
         self.assertEqual(result["status"], "queued")
         with self.assertRaises(ValueError) as err:
-            workspace.connect_account("unknown_system", {"username": "demo", "password": "secret"})
+            workspace.connect_account("unknown_system", {"mock_auth_token": "allow"})
         self.assertIn("Supported:", str(err.exception))
         self.assertIn("sap", str(err.exception))
 
