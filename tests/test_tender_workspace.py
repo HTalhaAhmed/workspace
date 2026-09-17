@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+from unittest.mock import call, patch
 
 from tender_workspace import DEFAULT_TENDER_PORTALS, StaticProcurementSiteScraper, _utcnow, build_default_workspace
 
@@ -274,6 +275,10 @@ class TenderWorkspaceTests(unittest.TestCase):
         self.assertEqual([item["ingested"] for item in cycles], [1, 0, 0])
         self.assertEqual(cycles[-1]["total"], 1)
         self.assertEqual(workspace.run_pipeline_loop(iterations=0), [])
+        with patch("tender_workspace.time.sleep") as mocked_sleep:
+            workspace.run_pipeline_loop(iterations=3, sources=["canada buy"], interval_seconds=0.5)
+            self.assertEqual(mocked_sleep.call_count, 2)
+            mocked_sleep.assert_has_calls([call(0.5), call(0.5)])
 
 
 
