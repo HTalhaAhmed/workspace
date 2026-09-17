@@ -103,6 +103,31 @@ class TenderWorkspaceTests(unittest.TestCase):
                     "url": "https://example.test/missing",
                 },
             )
+        with self.assertRaises(ValueError) as invalid_published:
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Bad published timestamp",
+                    "country": "Canada",
+                    "summary": "Invalid publication timestamp",
+                    "url": "https://example.test/bad-published",
+                    "published_at": "not-a-date",
+                },
+            )
+        self.assertIn("published_at", str(invalid_published.exception))
+        with self.assertRaises(ValueError) as invalid_closing:
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Bad closing timestamp",
+                    "country": "Canada",
+                    "summary": "Invalid closing timestamp",
+                    "url": "https://example.test/bad-closing",
+                    "published_at": _utcnow().isoformat(),
+                    "closing_at": "not-a-date",
+                },
+            )
+        self.assertIn("closing_at", str(invalid_closing.exception))
 
     def test_gate_flow_feedback_and_success_metrics(self):
         workspace = build_default_workspace()

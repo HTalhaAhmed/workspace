@@ -184,7 +184,10 @@ class IngestionAndScoringEngine:
                 raise ValueError(f"Missing required datetime field: {field_name}")
             return None
         normalized = value.replace("Z", "+00:00")
-        parsed = datetime.fromisoformat(normalized)
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError as exc:
+            raise ValueError(f"Invalid datetime format for {field_name}") from exc
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return parsed
