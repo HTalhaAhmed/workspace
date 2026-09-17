@@ -200,7 +200,7 @@ class IngestionAndScoringEngine:
             return None
         if not isinstance(value, str):
             raise ValueError(f"Datetime field {field_name} must be an ISO-8601 string")
-        normalized = value.replace("Z", "+00:00")
+        normalized = f"{value[:-1]}+00:00" if value.endswith(("Z", "z")) else value
         try:
             parsed = datetime.fromisoformat(normalized)
         except ValueError as exc:
@@ -437,11 +437,11 @@ class MasterPipelineAgent:
                 f"Unknown tender source: {source}. Register the source before ingestion. "
                 f"Supported sources: {available_sources}"
             )
-        record_key = self._scrape_record_key(canonical_source, payload)
+        record = self.ingestion_engine.normalize_alert(canonical_source, payload)
+        record_key = self._record_key_from_record(record)
         existing_opportunity_id = self._record_to_opportunity_id.get(record_key)
         if existing_opportunity_id is not None:
             return self._opportunities[existing_opportunity_id]
-        record = self.ingestion_engine.normalize_alert(canonical_source, payload)
         opportunity = self.ingest_opportunity(
             title=record.title,
             source=canonical_source,
@@ -487,11 +487,10 @@ class MasterPipelineAgent:
             if scraper is None:
                 raise ValueError(f"No scraper registered for source: {source_name}")
             for payload in scraper.scrape():
-                record_key = self._scrape_record_key(source_name, payload)
-                if record_key in self._ingested_record_keys:
-                    continue
-                ingested.append(self.ingest_portal_alert(source_name, payload, value_usd=value_usd))
-                self._ingested_record_keys.add(record_key)
+                before_count = len(self._opportunities)
+                opportunity = self.ingest_portal_alert(source_name, payload, value_usd=value_usd)
+                if len(self._opportunities) > before_count:
+                    ingested.append(opportunity)
         return ingested
 
     def run_pipeline_loop(
@@ -654,6 +653,14 @@ class MasterPipelineAgent:
         title = title_value.strip().lower() if isinstance(title_value, str) else ""
         published_at = published_value.strip().lower() if isinstance(published_value, str) else ""
         return f"{source_key}|{title}|{published_at}"
+
+    @staticmethod
+    def _record_key_from_record(record: IngestionRecord) -> str:
+        source_key = record.source.strip().lower()
+        url = record.url.strip().lower()
+        if url:
+            return f"{source_key}|{url}"
+        return f"{source_key}|{record.title.strip().lower()}|{record.published_at.isoformat().lower()}"
 
     def draft_proposal(
         self,

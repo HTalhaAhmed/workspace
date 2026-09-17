@@ -210,6 +210,18 @@ class TenderWorkspaceTests(unittest.TestCase):
             },
         )
         self.assertEqual(high_fit.opportunity_id, same_again.opportunity_id)
+        with self.assertRaises(ValueError):
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Ontario Cloud Infrastructure and IT Services",
+                    "country": "Ontario, Canada",
+                    "summary": "Cloud and IT managed services for digital infrastructure.",
+                    "url": "https://example.test/a",
+                    "published_at": "not-a-date",
+                    "closing_at": soon,
+                },
+            )
 
     def test_gate_flow_feedback_and_success_metrics(self):
         workspace = build_default_workspace()
