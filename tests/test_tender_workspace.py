@@ -127,6 +127,18 @@ class TenderWorkspaceTests(unittest.TestCase):
                 },
             )
         self.assertIn("published_at", str(invalid_published.exception))
+        with self.assertRaises(ValueError) as naive_published:
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Naive published timestamp",
+                    "country": "Canada",
+                    "summary": "Naive timestamp",
+                    "url": "https://example.test/naive-published",
+                    "published_at": "2026-01-01T12:00:00",
+                },
+            )
+        self.assertIn("timezone", str(naive_published.exception))
         with self.assertRaises(ValueError) as invalid_closing:
             workspace.ingest_portal_alert(
                 "CanadaBuys",
@@ -140,6 +152,19 @@ class TenderWorkspaceTests(unittest.TestCase):
                 },
             )
         self.assertIn("closing_at", str(invalid_closing.exception))
+        with self.assertRaises(ValueError) as naive_closing:
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Naive closing timestamp",
+                    "country": "Canada",
+                    "summary": "Naive closing timestamp",
+                    "url": "https://example.test/naive-closing",
+                    "published_at": _utcnow().isoformat(),
+                    "closing_at": "2026-01-02T12:00:00",
+                },
+            )
+        self.assertIn("timezone", str(naive_closing.exception))
         same_again = workspace.ingest_portal_alert(
             "CanadaBuys",
             {

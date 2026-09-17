@@ -197,7 +197,7 @@ class IngestionAndScoringEngine:
         except ValueError as exc:
             raise ValueError(f"Invalid datetime format for {field_name}") from exc
         if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=timezone.utc)
+            raise ValueError(f"Datetime field {field_name} must include timezone information")
         return parsed
 
 

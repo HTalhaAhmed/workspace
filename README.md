@@ -22,6 +22,7 @@ from datetime import timedelta
 from tender_workspace import StaticProcurementSiteScraper, _utcnow, build_default_workspace
 
 workspace = build_default_workspace()
+now = _utcnow()
 
 # Register municipal portals and contact graph inputs
 workspace.catalog.register_municipal_portal("Toronto", "Canada")
@@ -37,8 +38,8 @@ opportunity = workspace.ingest_portal_alert("CanadaBuys", {
     "country": "Ontario, Canada",
     "summary": "Cloud and IT modernization",
     "url": "https://example.test/tender",
-    "published_at": _utcnow().isoformat(),
-    "closing_at": (_utcnow() + timedelta(days=7)).isoformat(),
+    "published_at": now.isoformat(),
+    "closing_at": (now + timedelta(days=7)).isoformat(),
 })
 
 # Optional scraper wiring (example static scraper for orchestration)
