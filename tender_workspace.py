@@ -147,11 +147,11 @@ class IngestionAndScoringEngine:
         published_at = self._parse_datetime(payload.get("published_at"), field_name="published_at")
         closing_at = self._parse_datetime(payload.get("closing_at"), required=False, field_name="closing_at")
         return IngestionRecord(
-            title=payload.get("title", "Untitled Tender").strip(),
+            title=self._parse_text_field(payload.get("title", "Untitled Tender"), "title"),
             source=source.strip(),
-            country=payload.get("country", "Unknown").strip(),
-            summary=payload.get("summary", "").strip(),
-            url=payload.get("url", "").strip(),
+            country=self._parse_text_field(payload.get("country", "Unknown"), "country"),
+            summary=self._parse_text_field(payload.get("summary", ""), "summary"),
+            url=self._parse_text_field(payload.get("url", ""), "url"),
             published_at=published_at,
             closing_at=closing_at,
         )
@@ -208,6 +208,12 @@ class IngestionAndScoringEngine:
         if parsed.tzinfo is None:
             raise ValueError(f"Datetime field {field_name} must include timezone information")
         return parsed
+
+    @staticmethod
+    def _parse_text_field(value: object, field_name: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError(f"Field {field_name} must be a string")
+        return value.strip()
 
 
 class GateKeeper:
@@ -637,11 +643,14 @@ class MasterPipelineAgent:
     @staticmethod
     def _scrape_record_key(source: str, payload: Dict[str, str]) -> str:
         source_key = source.strip().lower()
-        url = payload.get("url", "").strip().lower()
+        url_value = payload.get("url", "")
+        url = url_value.strip().lower() if isinstance(url_value, str) else ""
         if url:
             return f"{source_key}|{url}"
-        title = payload.get("title", "").strip().lower()
-        published_at = payload.get("published_at", "").strip().lower()
+        title_value = payload.get("title", "")
+        published_value = payload.get("published_at", "")
+        title = title_value.strip().lower() if isinstance(title_value, str) else ""
+        published_at = published_value.strip().lower() if isinstance(published_value, str) else ""
         return f"{source_key}|{title}|{published_at}"
 
     def draft_proposal(

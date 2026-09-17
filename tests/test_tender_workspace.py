@@ -176,6 +176,17 @@ class TenderWorkspaceTests(unittest.TestCase):
                     "published_at": 12345,  # type: ignore[arg-type]
                 },
             )
+        with self.assertRaises(ValueError):
+            workspace.ingest_portal_alert(
+                "CanadaBuys",
+                {
+                    "title": "Non-string url",
+                    "country": "Canada",
+                    "summary": "Bad type",
+                    "url": 99,  # type: ignore[dict-item]
+                    "published_at": _utcnow().isoformat(),
+                },
+            )
         same_again = workspace.ingest_portal_alert(
             "CanadaBuys",
             {
