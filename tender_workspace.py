@@ -133,6 +133,7 @@ class IngestionAndScoringEngine:
 
     def llm_fit_score(self, record: IngestionRecord, focus_region: str = "ontario") -> float:
         text = f"{record.title} {record.summary} {record.country}".lower()
+        source_key = self._normalize_source_name(record.source)
         score = 0.0
 
         if focus_region.lower() in text:
@@ -142,13 +143,23 @@ class IngestionAndScoringEngine:
             if keyword in text:
                 score += 12
 
-        if record.source.lower() in {"canadabuys", "oecm", "bids and tenders"}:
+        if source_key in {
+            "canadabuys",
+            "oecm",
+            "bidsandtenders",
+            "eunanetwork",
+            "albertapurchasingconnection",
+        }:
             score += 10
 
         if (_utcnow() - record.published_at) <= timedelta(hours=24):
             score += 12
 
         return min(score, 100.0)
+
+    @staticmethod
+    def _normalize_source_name(source: str) -> str:
+        return "".join(char for char in source.lower() if char.isalnum())
 
     @staticmethod
     def _parse_datetime(value: Optional[str], required: bool = True) -> Optional[datetime]:
@@ -395,8 +406,8 @@ class MasterPipelineAgent:
         if is_open_solicitation:
             if not was_blackout:
                 opportunity.pre_blackout_stage = opportunity.stage
+                opportunity.stage = "open_solicitation"
             opportunity.blackout_flag = True
-            opportunity.stage = "open_solicitation"
         else:
             opportunity.blackout_flag = False
             if was_blackout and opportunity.stage == "open_solicitation":

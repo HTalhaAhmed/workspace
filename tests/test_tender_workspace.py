@@ -65,6 +65,28 @@ class TenderWorkspaceTests(unittest.TestCase):
         self.assertEqual(len(expiring), 1)
         self.assertEqual(expiring[0].opportunity_id, high_fit.opportunity_id)
 
+        euna_boost = workspace.ingest_portal_alert(
+            "Euna Network",
+            {
+                "title": "General Services",
+                "country": "Canada",
+                "summary": "",
+                "url": "https://example.test/d",
+                "published_at": _utcnow().isoformat(),
+            },
+        )
+        generic = workspace.ingest_portal_alert(
+            "GlobalBid",
+            {
+                "title": "General Services",
+                "country": "Canada",
+                "summary": "",
+                "url": "https://example.test/e",
+                "published_at": _utcnow().isoformat(),
+            },
+        )
+        self.assertGreater(euna_boost.fit_score, generic.fit_score)
+
     def test_gate_flow_feedback_and_success_metrics(self):
         workspace = build_default_workspace()
         opportunity = workspace.ingest_portal_alert(

@@ -52,7 +52,7 @@ metrics = workspace.success_metrics()
 ```
 
 ## Important implementation note
-The portal connectors are safe scaffolds for orchestration and integration testing. For production login/navigation in SAP or tender portals, wire these methods to your secure AWS secret manager, browser automation, and compliance controls.
+The portal connectors are safe scaffolds for orchestration and integration testing. For production login/navigation in SAP or tender portals, wire these methods to your secure AWS Secrets Manager, browser automation, and compliance controls.
 
 ## Tests
 Run:
