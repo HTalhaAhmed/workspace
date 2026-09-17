@@ -1,5 +1,5 @@
 import unittest
-from datetime import timedelta, timezone
+from datetime import timedelta
 
 from tender_workspace import DEFAULT_TENDER_PORTALS, _utcnow, build_default_workspace
 
@@ -23,6 +23,9 @@ class TenderWorkspaceTests(unittest.TestCase):
         workspace.set_blackout(opportunity.opportunity_id, True)
         with self.assertRaises(PermissionError):
             workspace.start_pre_solicitation_conversation(opportunity.opportunity_id, "Program Owner A")
+        workspace.set_blackout(opportunity.opportunity_id, False)
+        result = workspace.start_pre_solicitation_conversation(opportunity.opportunity_id, "Program Owner A")
+        self.assertIn("Capability briefing initiated", result)
 
     def test_ingestion_scoring_ranking_and_expiry(self):
         workspace = build_default_workspace()
@@ -103,6 +106,8 @@ class TenderWorkspaceTests(unittest.TestCase):
         self.assertTrue(logged_in)
         result = workspace.maneuver_account("sap", "open active procurements")
         self.assertEqual(result["status"], "queued")
+        with self.assertRaises(ValueError):
+            workspace.connect_account("unknown_system", {"username": "demo", "password": "secret"})
 
 
 if __name__ == "__main__":

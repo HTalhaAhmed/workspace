@@ -393,6 +393,8 @@ class MasterPipelineAgent:
         opportunity.blackout_flag = is_open_solicitation
         if is_open_solicitation:
             opportunity.stage = "open_solicitation"
+        elif opportunity.stage == "open_solicitation":
+            opportunity.stage = "triage"
 
     def start_pre_solicitation_conversation(self, opportunity_id: str, contact_name: str) -> str:
         opportunity = self._opportunities[opportunity_id]
@@ -458,12 +460,20 @@ class MasterPipelineAgent:
         self.approval_policy.require_approval(approver_role)
 
     def connect_account(self, account_name: str, credentials: Dict[str, str]) -> bool:
-        connector = self._connectors[account_name.strip().lower()]
+        connector = self._get_connector(account_name)
         return connector.login(credentials)
 
     def maneuver_account(self, account_name: str, query: str) -> Dict[str, str]:
-        connector = self._connectors[account_name.strip().lower()]
+        connector = self._get_connector(account_name)
         return connector.search(query)
+
+    def _get_connector(self, account_name: str) -> PortalConnector:
+        key = account_name.strip().lower()
+        connector = self._connectors.get(key)
+        if connector is None:
+            supported = ", ".join(sorted(self._connectors.keys()))
+            raise ValueError(f"Unsupported account connector: {account_name}. Supported: {supported}")
+        return connector
 
     def draft_proposal(
         self,
