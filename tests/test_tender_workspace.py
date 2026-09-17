@@ -194,6 +194,7 @@ class TenderWorkspaceTests(unittest.TestCase):
         ingested = workspace.scrape_and_ingest_sources(["canada buy", "merx", "MERX", "bc bid"])
         self.assertEqual(len(ingested), 3)
         self.assertEqual({"CanadaBuys", "MERX", "BC Bid"}, {item.source for item in ingested})
+        self.assertEqual(workspace.scrape_and_ingest_sources([]), [])
 
 
 if __name__ == "__main__":
